@@ -6,6 +6,7 @@ var Movie = require('./models/movie');//把模型加载进来
 var bodyParser = require('body-parser');//用来格式表单数据 4.几版本后与express分离所以要单独引用 
 var port = process.env.PORT || 3000;
 var app = express();//启动一个web服务器 实例附给app
+mongoose.Promise = require('promise'); //mongoose 默认用的是promise 加上它不报错误
 // mongoose.Promise = require('bluebird');
 mongoose.connect('mongodb://localhost:27017/imooc');//mongoose connect调用数据库 数据库名为imooc
 
