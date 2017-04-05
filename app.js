@@ -3,6 +3,7 @@ var path = require('path');//静态资源寻找路径
 var _ = require('underscore');
 var mongoose = require('mongoose');//引入mongoose数据库模块 来连接数据库
 var Movie = require('./models/movie');//把模型加载进来
+var User = require('./models/user');//把模型加载进来 引入 用户模型
 var bodyParser = require('body-parser');//用来格式表单数据 4.几版本后与express分离所以要单独引用 
 var port = process.env.PORT || 3000;
 var app = express();//启动一个web服务器 实例附给app
@@ -52,9 +53,74 @@ app.get('/',function(req,res){
     res.render('index',{
       title:'MOMO 首页',
       movies:movies
+    });
+  });
+});
+// signup
+// 表单是通过post方式提交的 保存用户名和密码
+app.post("/user/signup",function(req,res){
+    // user/signup/111?userId=1112  req.query.userId
+    // user/signup/:userId          req.params.userId
+    // req.query || req.body 根据提交方式 获取
+    // req.params 就是不管什么 方式都可以通过它拿值 首先拿路 没有由 在拿 body 没有拿 传的参数
+    var _user = req.body.user;
+    //首先查找数据库是否已经有过用户名
+    User.find({name:_user.name},function(err,user){
+        if(err){
+          console.log(err);
+        }
+        if(user){
+            return res.redirect('/');
+        }else{ //如果没有过那么保存用户名
+            var user = new User(_user);
+            user.save(function(err,user){
+                if(err){
+                  console.log(err);
+                }
+                res.redirect('/admin/userlist');
+            });            
+        }
+    });
+});
+//signin
+app.post("/user/signin",function(req,res){
+  var _user = req.body.user;
+  var name = _user.name;
+  var password = _user.password;
+  User.findOne({name:name},function(err,user){
+    if(err){
+      console.log(err);
+    }
+    if(!user){
+      return res.redirect('/');
+    }
+    user.comparePassword(password,function(err,isMatch){
+      if(err){
+        console.log(err);
+      }
+      //密码正确
+      if(isMatch){
+        console.log('Password is matched');
+        return res.redirect('/');
+      }else{//密码错误 
+        console.log('Password is not matched');
+      }
     })
   })
-})
+});
+//用户列表路由
+app.get('/admin/userlist',function(req,res){
+  User.fetch(function(err,users) {
+    if(err){
+      console.log(err);
+    }
+    res.render('userlist',{
+      title:'用户 列表页',
+      users:users
+    });
+  });
+});
+
 //detail page 加入页面 路由
 app.get('/movie/:id',function(req,res){
 	// var movie = {
@@ -76,9 +142,9 @@ app.get('/movie/:id',function(req,res){
     res.render('detail',{
       title:'MOMO'+movie.title,
       movie:movie
-    })
-  })
-})
+    });
+  });
+});
 
 app.get('/admin/update/:id',function(req,res) {
   var id = req.params.id;
@@ -87,10 +153,10 @@ app.get('/admin/update/:id',function(req,res) {
       res.render('admin',{
         title:"immoc 后台更新页",
         movie:movie
-      })
-    })
+      });
+    });
   }
-})  
+});
 
 app.get('/admin/movie',function(req,res){
   console.log('enter admin');
@@ -106,8 +172,8 @@ app.get('/admin/movie',function(req,res){
         flash:'',
         summary:'',
       }
-  })
-})
+  });
+});
 
 //admin update
 app.get('/admin/update/:id',function(req,res) {
@@ -117,10 +183,10 @@ app.get('/admin/update/:id',function(req,res) {
       res.render('admin',{
         title:"immoc 后台更新页",
         movie:movie
-      })
-    })
+      });
+    });
   }
-})
+});
 
 //admin post movie
 app.post('/admin/movie/new',function(req,res) {
@@ -141,8 +207,8 @@ app.post('/admin/movie/new',function(req,res) {
           console.log(err);
         }
         res.redirect('/movie/'+movie._id);
-      })
-    })
+      });
+    });
   }
   else{
     _movie = new Movie({
@@ -154,15 +220,15 @@ app.post('/admin/movie/new',function(req,res) {
       poster:movieObj.poster,
       summary:movieObj.summary,
       flash:movieObj.flash
-    })
+    });
     _movie.save(function(err,movie) {
       if(err){
         console.log(err);
       }
       res.redirect('/movie/'+movie._id);
-    })
+    });
   }
-})
+});
 
 app.get('/admin/list',function(req,res){
 	// var movies = [{
@@ -181,9 +247,9 @@ app.get('/admin/list',function(req,res){
     res.render('list',{
       title:'MOMO 列表页',
       movies:movies
-    })
-  })
-})
+    });
+  });
+});
 
 //list delete movie
 app.delete('/admin/list',function(req,res) {
@@ -196,6 +262,6 @@ app.delete('/admin/list',function(req,res) {
       else{
         res.json({success: 1});
       }
-    })
+    });
   }
-})
+});
