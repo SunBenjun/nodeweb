@@ -2,19 +2,43 @@ var express = require('express');//加载express模块
 var path = require('path');//静态资源寻找路径
 var _ = require('underscore');
 var mongoose = require('mongoose');//引入mongoose数据库模块 来连接数据库
+var cookieParser = require('cookie-parser');
+var session = require('express-session');
+// var mongoStore = require('connect-mongo')(express);////因为session不在express里面了 
+var mongoStore = require('connect-mongo')(session); //用来保存cookie的中间件  持久化session
 var Movie = require('./models/movie');//把模型加载进来
 var User = require('./models/user');//把模型加载进来 引入 用户模型
 var bodyParser = require('body-parser');//用来格式表单数据 4.几版本后与express分离所以要单独引用 
 var port = process.env.PORT || 3000;
 var app = express();//启动一个web服务器 实例附给app
+var dbUrl = "mongodb://localhost:27017/imooc";//连接的数据库
 mongoose.Promise = require('promise'); //mongoose 默认用的是promise 加上它不报错误
 // mongoose.Promise = require('bluebird');
-mongoose.connect('mongodb://localhost:27017/imooc');//mongoose connect调用数据库 数据库名为imooc
+mongoose.connect(dbUrl);//mongoose connect调用数据库 数据库名为imooc
 
 app.set('views','./views/pages');//设置视图默认目录
 app.set('view engine','jade');//设置 默认模板引擎 jdade
 app.use(bodyParser.json() );
 app.use(bodyParser.urlencoded({extended: true}));
+// app.use(express.cookieParser()); express新版 不支持了 需要单独引入 cookie 和 session
+// app.use(express.session({ //依赖上面一个cookieParser中间件   ** express新不支持 session了
+//     secret:'imooc'，
+//     store: new mongoStore({
+//         url:dbUrl,
+//         collection:'sessions'
+//     });
+// }));
+app.use(cookieParser());
+app.use(session({
+  secret:'imooc',
+  resave: false,    
+  saveUninitialized: false,
+  store: new mongoStore({
+      url:dbUrl,
+      collection:'sessions'
+  })
+}));
+
 app.use(express.static(path.join(__dirname,'public')));//静态资源从这里找
 app.locals.moment = require('moment');//list.jade 里面调用了moment格式化时间
 app.listen(port);//监听端口
@@ -46,6 +70,8 @@ app.get('/',function(req,res){
 	// 		_id:6,
 	// 		poster:'http://r3.ykimg.com/05160000530EEB63675839160D0B79D5'
 	// 	}]
+  console.log("user is session:");
+  console.log(req.session.user); 
   Movie.fetch(function(err,movies) {
     if(err){
       console.log(err);
@@ -82,7 +108,7 @@ app.post("/user/signup",function(req,res){
         }
     });
 });
-//signin
+//signin 登录
 app.post("/user/signin",function(req,res){
   var _user = req.body.user;
   var name = _user.name;
@@ -100,6 +126,7 @@ app.post("/user/signin",function(req,res){
       }
       //密码正确
       if(isMatch){
+        req.session.user = user; //登录成功保存到缓存 使用session前面要引用
         console.log('Password is matched');
         return res.redirect('/');
       }else{//密码错误 
