@@ -53,9 +53,6 @@ exports.new = function(req,res){
           }
       });
 };
-
-
-
     //admin post movie
 exports.save = function(req,res) {
       console.log('enter post');
@@ -126,6 +123,7 @@ exports.del = function(req,res) {
         Movie.remove({_id: id},function(err,movie) {
           if(err){
             console.log(err);
+            res.json({success: 0});
           }
           else{
             res.json({success: 1});

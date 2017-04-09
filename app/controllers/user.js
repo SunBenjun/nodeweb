@@ -1,4 +1,19 @@
 var User = require('../models/user');//把模型加载进来 引入 用户模型
+
+// showSignin
+// 表单是通过post方式提交的 保存用户名和密码
+exports.showSignin = function(req,res){
+    res.render('signin',{
+        title:'登录页面'
+    });
+};
+// showSignup
+// 表单是通过post方式提交的 保存用户名和密码
+exports.showSignup = function(req,res){
+    res.render('signup',{
+        title:'注册页面'
+    });
+};
 // signup
 // 表单是通过post方式提交的 保存用户名和密码
 exports.signup = function(req,res){
@@ -13,14 +28,14 @@ exports.signup = function(req,res){
             console.log(err);
           }
           if(user){
-              return res.redirect('/');
+              return res.redirect('/signin');
           }else{ //如果没有过那么保存用户名
               var user = new User(_user);
               user.save(function(err,user){
                   if(err){
                     console.log(err);
                   }
-                  res.redirect('/admin/userlist');
+                  res.redirect('/');
               });            
           }
       });
@@ -35,7 +50,7 @@ exports.signin = function(req,res){
           console.log(err);
         }
         if(!user){
-          return res.redirect('/');
+          return res.redirect('/signup');
         }
         user.comparePassword(password,function(err,isMatch){
           if(err){
@@ -48,6 +63,7 @@ exports.signin = function(req,res){
             return res.redirect('/');
           }else{//密码错误 
             console.log('Password is not matched');
+            return res.redirect('/signin');
           }
         })
       })
@@ -58,15 +74,30 @@ exports.logout = function(req,res){
       // delete app.locals.user; //删除本地变量users
       res.redirect('/');
 };
-    //用户列表路由
+//用户列表路由
 exports.list = function(req,res){
-      User.fetch(function(err,users) {
-        if(err){
-          console.log(err);
-        }
-        res.render('userlist',{
-          title:'用户 列表页',
-          users:users
-        });
+    User.fetch(function(err,users) {
+      if(err){
+        console.log(err);
+      }
+      res.render('userlist',{
+        title:'用户 列表页',
+        users:users
       });
+    });
 };
+
+exports.signinRequired = function(req,res,next){
+    var user = req.session.user;
+    if(!user){
+        return res.redirect('/signin');
+    }
+    next();
+}
+exports.adminRequired = function(req,res,next){
+    var user = req.session.user;
+    if(user.role<=10){
+        return res.redirect('/signin'); //用户 等 级小于10 重新跳到登录
+    }
+    next();
+}

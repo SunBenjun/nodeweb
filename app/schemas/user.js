@@ -6,7 +6,11 @@ var UserSchema = new mongoose.Schema({
 		unique:true,
 		type:String
 	},
-	password:String,	
+	password:String,
+	role:{
+		type:Number,
+		default:0
+	},//0:normal 1:yerified user 2:professonal user 这个自己定 用户等级
 	meta:{
 		createAt:{
 			type:Date,
